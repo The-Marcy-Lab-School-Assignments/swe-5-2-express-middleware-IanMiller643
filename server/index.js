@@ -20,6 +20,12 @@ const quotes = [
 
 // TODO: Define middleware here
 
+const logRoutes = (req, res, next) => {
+  console.log(`${req.method}: ${req.url} - ${new Date().toLocaleString()}`);
+  next();
+}
+
+const serveFrontend = express.static(path.join(__dirname, '../frontend'));
 // 1. logRoutes — logs the HTTP method, URL, and timestamp for every request, then calls next()
 
 // 2. express.static() — generates middleware that serves files from the frontend/ folder
@@ -27,30 +33,56 @@ const quotes = [
 
 // TODO: Register middleware with app.use() before the controllers
 
-
+app.use(logRoutes);
+app.use(serveFrontend);
 
 // TODO: Define controllers here
 
 // listQuotes — sends all quotes as JSON
 //   If the request includes a ?topic= query string, send only quotes with a matching topic
+const listQuotes = (req, res, next) => {
+  const { topic } = req.query;
 
+  if (topic) {
+    res.send(quotes.filter((quote) => quote.topic === topic));
+  }
+
+  res.send(quotes);
+}
 // getQuote — sends a single quote whose id matches req.params.id
 //   If no matching quote is found, respond with 404 and { error: 'No quote with id <id>' }
+const getQuote = (req, res, next) => {
+  const { id } = req.params;
+
+  const quote = quotes.find((quote) => quote.id === Number(id));
+
+  if (!quote) {
+    res.status(404).send({ message: 'Quote not found.' });
+    return;
+  }
+
+  res.send(quote);
+}
 
 
-
+const serve404 = (req, res, next) => {
+  res.status(404).send({ error: `Not found: ${req.originalUrl}` });
+}
 // TODO: Register endpoints here
 
 // GET /api/quotes
 // GET /api/quotes/:id
-
+app.get('/api/quotes', listQuotes);
+app.get('/api/quotes/:id', getQuote);
 
 
 // TODO: Add a catch-all fallback that responds with 404 and { error: 'Not found: <url>' }
 // Use app.use() and place it after all other routes
-
+app.use(serve404);
 
 
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
 });
+
+// Render URL: https://swe-5-2-express-middleware-ianmiller643.onrender.com/
